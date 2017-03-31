@@ -19,7 +19,7 @@ namespace Homm.Client
 			width = sensorData.Map.Width;
 			objects = new MapObjectData[height, width];
 			visited = new bool[height, width];
-			visited = new bool[height, width];
+			RefreshMapState(sensorData);
 		}
 
 		public void RefreshMapState(HommSensorData data)
