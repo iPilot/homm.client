@@ -48,15 +48,23 @@ namespace Homm.Client
                                             // должен работать одинаково хорошо в обоих случаях.
             );
 
-         //   var path = new[] { Direction.RightDown, Direction.RightUp, Direction.RightDown, Direction.RightUp, Direction.LeftDown, Direction.Down, Direction.RightDown, Direction.RightDown, Direction.RightUp };
-         //   sensorData = client.HireUnits(1);
-	        //foreach (var e in path)
+			//var strategy = new GameStrategy(client, ip, port, CvarcTag);
+			//strategy.Execute();
+
+			//   var path = new[] { Direction.RightDown, Direction.RightUp, Direction.RightDown, Direction.RightUp, Direction.LeftDown, Direction.Down, Direction.RightDown, Direction.RightDown, Direction.RightUp };
+			//   sensorData = client.HireUnits(1);
+			//foreach (var e in path)
+			//{
+			// sensorData = client.Move(e);
+			// client.Wait(2);
+			//}
+			//sensorData = client.Move(Direction.RightDown);
+	        //for (int i = 0; i < 5; i++)
 	        //{
-		       // sensorData = client.Move(e);
-		       // client.Wait(2);
+		       // sensorData = client.Move(Direction.Down);
+		       // client.Wait(1);
 	        //}
-	        //sensorData = client.Move(Direction.RightDown);
-            client.Exit();
+	        client.Exit();
         }
 
 
@@ -89,13 +97,12 @@ namespace Homm.Client
             Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.LeftUp)));
         }
 
-        static string GetObjectAt(MapData map, Location location)
+        public static string GetObjectAt(MapData map, Location location)
         {
             if (location.X < 0 || location.X >= map.Width || location.Y < 0 || location.Y >= map.Height)
                 return "Outside";
-            return map.Objects.
-                Where(x => x.Location.X == location.X && x.Location.Y == location.Y)
-                .FirstOrDefault()?.ToString() ?? "Nothing";
+            return map.Objects.FirstOrDefault(x => x.Location.X == location.X && x.Location.Y == location.Y)
+				?.ToString() ?? "Nothing";
         }
 
 
@@ -105,10 +112,5 @@ namespace Homm.Client
             Console.WriteLine(infoMessage);
             Console.ResetColor();
         }
-
-	    private void ResourseCollector(HommClient client)
-	    {
-
-	    }
     }
 }

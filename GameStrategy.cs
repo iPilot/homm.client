@@ -1,30 +1,49 @@
 ﻿using System;
+using System.Collections.Generic;
 using HoMM;
 using HoMM.ClientClasses;
 
 namespace Homm.Client
 {
-	public abstract class GameStrategy
+	public class GameStrategy
 	{
-		protected HommSensorData sensorData;
-
-		protected GameStrategy(HommSensorData currentSensorData)
+		private HommClient client;
+		private HommSensorData sensorData;
+		private Dictionary<Direction, Direction> directions = new Dictionary<Direction, Direction>
 		{
-			sensorData = currentSensorData;
+			{Direction.LeftUp, Direction.RightDown},
+			{Direction.Up, Direction.Down},
+			{Direction.RightUp, Direction.LeftDown },
+			{Direction.RightDown, Direction.LeftUp},
+			{Direction.Down, Direction.Up},
+			{Direction.LeftDown, Direction.RightUp}
+		};
+
+		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
+		{
+			this.client = client;
+			sensorData = client.Configurate(ip, port, cVarcTag);
 		}
 
-		protected abstract HommSensorData ReleaseStrategy();
-	}
-
-	public class ResourseCollector : GameStrategy
-	{
-		public ResourseCollector(HommSensorData sensorData) : base(sensorData)
+		public void Execute()
 		{
+			while (!sensorData.IsDead)
+			{
+				sensorData = CollectResourses();
+			}
 		}
 
-		protected override HommSensorData ReleaseStrategy()
+		private HommSensorData CollectResourses()
 		{
-			return sensorData;
+			var s = new Stack<Direction>();
+			var location = sensorData.Location.ToLocation();
+			foreach (var direction in directions)
+			{
+				var obj = location.NeighborAt(direction.Key);
+			}
+
+
+			throw new NotImplementedException();
 		}
 	}
 }
