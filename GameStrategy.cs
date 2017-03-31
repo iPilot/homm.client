@@ -74,8 +74,6 @@ namespace Homm.Client
 		public void Execute()
 		{
 			CollectResourses();
-			CollectResourses();
-			CollectResourses();
 		}
 
 		private void CollectResourses()
