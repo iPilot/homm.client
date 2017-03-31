@@ -124,7 +124,7 @@ namespace Homm.Client
 		private bool IsSafetyObject(MapObjectData obj)
 		{
 			return obj == null || obj.Dwelling == null && obj.NeutralArmy == null && obj.Wall == null &&
-			       obj.Garrison?.Owner == sensorData.MyRespawnSide;
+			       (obj.Garrison == null || obj.Garrison.Owner == sensorData.MyRespawnSide);
 		}
 	}
 }
