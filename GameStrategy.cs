@@ -47,6 +47,37 @@ namespace Homm.Client
 		{
 			return location.X < 0 || location.X >= width || location.Y < 0 || location.Y >= height;
 		}
+
+		public List<MapObjectData> FindWeakestEnemy(HommSensorData sensor)
+		{
+			bool[,] v = new bool[width, height];
+			List<MapObjectData> enemies = new List<MapObjectData>();
+			Queue<MapObjectData> data = new Queue<MapObjectData>();
+			data.Enqueue(objects[sensor.Location.X, sensor.Location.Y]);
+			while (data.Count != 0)
+			{
+				var curObject = data.Dequeue();
+				v[curObject.Location.X, curObject.Location.Y] = true;
+				foreach (var location in curObject.Location.ToLocation().Neighborhood)
+				{
+					if (IsOutside(location)) continue;
+					var newObj = objects[location.X, location.Y];
+					if (newObj.Wall != null || v[newObj.Location.X, newObj.Location.Y]) continue;
+					if (newObj.NeutralArmy != null)
+					{
+						if (!v[newObj.Location.X, newObj.Location.Y])
+						{
+							enemies.Add(curObject);
+							v[newObj.Location.X, newObj.Location.Y] = true;
+							Console.WriteLine(newObj.Location);
+						}
+						continue;
+					}
+					data.Enqueue(newObj);
+				}
+			}
+			return enemies;
+		}
 	}
 
 	public class GameStrategy
