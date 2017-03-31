@@ -45,13 +45,6 @@ namespace Homm.Client
 			return l.X < 0 || l.X >= width || l.Y < 0 || l.Y >= height;
 		}
 
-		private bool IsSafetyObject(Location l)
-		{
-			var obj = objects[l.Y, l.X];
-			return obj == null || obj.Dwelling == null && obj.NeutralArmy == null && obj.Wall == null &&
-				   (obj.Garrison == null || obj.Garrison.Owner == mySide);
-		}
-
 		private bool IsOpponentRespawn(Location l)
 		{
 			return mySide == "Left" && l.X == width - 1 && l.Y == height - 1 ||
@@ -60,7 +53,7 @@ namespace Homm.Client
 
 		private bool IsValidMove(Location l)
 		{
-			return !IsOutside(l) && !IsOpponentRespawn(l) && IsSafetyObject(l);
+			return !IsOutside(l) && !IsOpponentRespawn(l);
 		}
 
 		public List<MapObjectData> FindWeakestEnemy(HommSensorData sensor)
@@ -129,12 +122,19 @@ namespace Homm.Client
 			foreach (var direction in directions)
 			{
 				var obj = map[location.NeighborAt(direction.Key)];
-				if (obj == null || obj.Item2) continue;
+				if (obj == null || obj.Item2 || !IsSafetyObject(obj.Item1)) continue;
 				map[location] = StrategyMapInfo.visitedCell;
 				sensorData = client.Move(direction.Key);
 				CollectResourses();
 				sensorData = client.Move(directions[direction.Key]);
 			}
 		}
+
+		private bool IsSafetyObject(MapObjectData obj)
+		{
+			return obj == null || obj.Dwelling == null && obj.NeutralArmy == null && obj.Wall == null &&
+				   (obj.Garrison == null || obj.Garrison.Owner == sensorData.MyRespawnSide);
+		}
+
 	}
 }
