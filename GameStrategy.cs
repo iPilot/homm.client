@@ -11,6 +11,7 @@ namespace Homm.Client
 		private MapObjectData[,] objects;
 		private readonly int height;
 		private readonly int width;
+		public static readonly Tuple<MapObjectData, bool> visitedCell = new Tuple<MapObjectData, bool>(null, true);
 
 		public StrategyMapInfo(HommSensorData sensorData)
 		{
@@ -18,22 +19,29 @@ namespace Homm.Client
 			width = sensorData.Map.Width;
 			objects = new MapObjectData[height, width];
 			visited = new bool[height, width];
+			visited = new bool[height, width];
 		}
 
 		public void RefreshMapState(HommSensorData data)
 		{
 			foreach (var obj in data.Map.Objects)
 			{
-				if (objects[obj.Location.X, obj.Location.Y] == null || objects[obj.Location.X, obj.Location.Y] != obj)
-					visited[obj.Location.X, obj.Location.Y] = false;
-				objects[obj.Location.X, obj.Location.Y] = obj;
+				if (objects[obj.Location.Y, obj.Location.X] == null || objects[obj.Location.Y, obj.Location.X] != obj)
+					visited[obj.Location.Y, obj.Location.X] = false;
+				objects[obj.Location.Y, obj.Location.X] = obj;
 			}
 		}
 
-		public Tuple<MapObjectData, bool> this[Location location] => 
-			IsOutside(location) 
-			? null 
-			: Tuple.Create(objects[location.X, location.Y], visited[location.X, location.Y]);
+		public Tuple<MapObjectData, bool> this[Location location]
+		{
+			get
+			{
+				return IsOutside(location)
+					? null
+					: Tuple.Create(objects[location.Y, location.X], visited[location.Y, location.X]);
+			}
+			set { visited[location.Y, location.X] = value.Item2; }
+		}
 
 		private bool IsOutside(Location location)
 		{
@@ -59,31 +67,33 @@ namespace Homm.Client
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
 			this.client = client;
-			sensorData = client.Configurate(ip, port, cVarcTag);
+			sensorData = client.Configurate(ip, port, cVarcTag, debugMap:true, spectacularView:false);
 			map = new StrategyMapInfo(sensorData);
 		}
 
 		public void Execute()
 		{
-			//while (!sensorData.IsDead)
-			//{
-				sensorData = CollectResourses();
-			//}
+			CollectResourses();
 		}
 
-		private HommSensorData CollectResourses()
+		private void CollectResourses()
 		{
-			var s = new Stack<Direction>();
-			foreach (var location in sensorData.Location.ToLocation().Neighborhood)
+			var location = sensorData.Location.ToLocation();
+			foreach (var direction in directions)
 			{
-				var obj = map[location];
-				switch (obj)
-				{
-					
-				}
+				var obj = map[location.NeighborAt(direction.Key)];
+				if (obj == null || obj.Item2 || !IsSafetyObject(obj.Item1)) continue;
+				map[location] = StrategyMapInfo.visitedCell;
+				sensorData = client.Move(direction.Key);
+				CollectResourses();
+				sensorData = client.Move(directions[direction.Key]);
 			}
+		}
 
-			throw new NotImplementedException();
+		private bool IsSafetyObject(MapObjectData obj)
+		{
+			return obj == null || obj.Dwelling == null && obj.NeutralArmy == null && obj.Wall == null &&
+			       obj.Garrison?.Owner == sensorData.MyRespawnSide;
 		}
 	}
 }
