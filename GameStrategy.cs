@@ -7,19 +7,22 @@ namespace Homm.Client
 {
 	public class StrategyMapInfo
 	{
-		private bool[,] visited;
-		private MapObjectData[,] objects;
+		private Dictionary<Location, MapObjectData> mapObjects;
+		private HashSet<Location> enemies;
+		private Dictionary<UnitType, HashSet<Location>> dwellings;
+		private Dictionary<Resource, HashSet<Location>> mines;
 		private readonly int height;
 		private readonly int width;
 		private readonly string mySide;
-		public static readonly Tuple<MapObjectData, bool> visitedCell = new Tuple<MapObjectData, bool>(null, true);
 
 		public StrategyMapInfo(HommSensorData sensorData)
 		{
 			height = sensorData.Map.Height;
 			width = sensorData.Map.Width;
-			objects = new MapObjectData[height, width];
-			visited = new bool[height, width];
+			mapObjects = new Dictionary<Location, MapObjectData>();
+			enemies = new HashSet<Location>();
+			dwellings = new Dictionary<UnitType, HashSet<Location>>();
+			mines = new Dictionary<Resource, HashSet<Location>>();
 			RefreshMapState(sensorData);
 			mySide = sensorData.MyRespawnSide;
 		}
@@ -28,21 +31,30 @@ namespace Homm.Client
 		{
 			foreach (var obj in data.Map.Objects)
 			{
-				if (objects[obj.Location.Y, obj.Location.X] == null || objects[obj.Location.Y, obj.Location.X] != obj)
-					visited[obj.Location.Y, obj.Location.X] = false;
-				objects[obj.Location.Y, obj.Location.X] = obj;
+				var l = obj.Location.ToLocation();
+				if (IsEnemy(obj)) enemies.Add(l);
+				if (obj.Dwelling != null)
+				{
+					if (!dwellings.ContainsKey(obj.Dwelling.UnitType))
+						dwellings.Add(obj.Dwelling.UnitType, new HashSet<Location>());
+					dwellings[obj.Dwelling.UnitType].Add(l);
+				}
+				if (obj.Mine != null)
+				{
+					if (!mines.ContainsKey(obj.Mine.Resource))
+						mines.Add(obj.Mine.Resource, new HashSet<Location>());
+					mines[obj.Mine.Resource].Add(l);
+				}
+				if (mapObjects.ContainsKey(l) && mapObjects[l] == obj) continue;
+				mapObjects[l] = obj;
 			}
 		}
 
-		public Tuple<MapObjectData, bool> this[Location l]
-		{
-			get { return IsValidMove(l) ? Tuple.Create(objects[l.Y, l.X], visited[l.Y, l.X]) : null; }
-			set { visited[l.Y, l.X] = value.Item2; }
-		}
+		public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 
-		private bool IsOutside(Location l)
+		public bool IsInside(Location l)
 		{
-			return l.X < 0 || l.X >= width || l.Y < 0 || l.Y >= height;
+			return l.X >= 0 && l.X < width && l.Y >= 0 && l.Y < height;
 		}
 
 		private bool IsOpponentRespawn(Location l)
@@ -51,40 +63,14 @@ namespace Homm.Client
 				   mySide == "Right" && l.X == 0 && l.Y == 0;
 		}
 
-		private bool IsValidMove(Location l)
+		private bool IsAvailableCell(Location l)
 		{
-			return !IsOutside(l) && !IsOpponentRespawn(l);
+			return IsInside(l) && !IsOpponentRespawn(l);
 		}
 
-		public List<MapObjectData> FindWeakestEnemy(HommSensorData sensor)
+		private bool IsEnemy(MapObjectData obj)
 		{
-			bool[,] v = new bool[width, height];
-			List<MapObjectData> enemies = new List<MapObjectData>();
-			Queue<MapObjectData> data = new Queue<MapObjectData>();
-			data.Enqueue(objects[sensor.Location.X, sensor.Location.Y]);
-			while (data.Count != 0)
-			{
-				var curObject = data.Dequeue();
-				v[curObject.Location.X, curObject.Location.Y] = true;
-				foreach (var location in curObject.Location.ToLocation().Neighborhood)
-				{
-					if (IsOutside(location)) continue;
-					var newObj = objects[location.X, location.Y];
-					if (newObj.Wall != null || v[newObj.Location.X, newObj.Location.Y]) continue;
-					if (newObj.NeutralArmy != null)
-					{
-						if (!v[newObj.Location.X, newObj.Location.Y])
-						{
-							enemies.Add(curObject);
-							v[newObj.Location.X, newObj.Location.Y] = true;
-							Console.WriteLine(newObj.Location);
-						}
-						continue;
-					}
-					data.Enqueue(newObj);
-				}
-			}
-			return enemies;
+			return obj.NeutralArmy != null || obj.Garrison != null && obj.Garrison.Owner != mySide;
 		}
 	}
 
@@ -107,33 +93,73 @@ namespace Homm.Client
 		{
 			this.client = client;
 			//TODO: FIX PARAMETRES
-			sensorData = client.Configurate(ip, port, cVarcTag, debugMap:true, spectacularView:false,speedUp:true);  
+			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true);
 			map = new StrategyMapInfo(sensorData);
 		}
 
 		public void Execute()
 		{
-			CollectResourses();
+			InspectMap();
 		}
 
-		private void CollectResourses()
+		private void InspectMap()
+		{
+			var visited = new HashSet<Location> {sensorData.Location.ToLocation()};
+			InspectMapRec(visited);
+		}
+
+		private void InspectMapRec(HashSet<Location> visited)
 		{
 			var location = sensorData.Location.ToLocation();
 			foreach (var direction in directions)
 			{
-				var obj = map[location.NeighborAt(direction.Key)];
-				if (obj == null || obj.Item2 || !IsSafetyObject(obj.Item1)) continue;
-				map[location] = StrategyMapInfo.visitedCell;
+				var l = location.NeighborAt(direction.Key);
+				var obj = map[l];
+				if (obj == null || visited.Contains(l) || !IsSafetyObject(obj)) continue;
+				visited.Add(l);
 				sensorData = client.Move(direction.Key);
-				CollectResourses();
+				map.RefreshMapState(sensorData);
+				InspectMapRec(visited);
 				sensorData = client.Move(directions[direction.Key]);
 			}
+			
 		}
+
+		//public List<MapObjectData> FindEnemies(HommSensorData sensor)
+		//{
+		//	bool[,] v = new bool[height, width];
+		//	List<MapObjectData> enemies = new List<MapObjectData>();
+		//	Queue<MapObjectData> data = new Queue<MapObjectData>();
+		//	data.Enqueue(objects[sensor.Location.X, sensor.Location.Y]);
+		//	while (data.Count != 0)
+		//	{
+		//		var curObject = data.Dequeue();
+		//		v[curObject.Location.X, curObject.Location.Y] = true;
+		//		foreach (var location in curObject.Location.ToLocation().Neighborhood)
+		//		{
+		//			if (IsOutside(location)) continue;
+		//			var newObj = objects[location.X, location.Y];
+		//			if (newObj.Wall != null || v[newObj.Location.X, newObj.Location.Y]) continue;
+		//			if (newObj.NeutralArmy != null)
+		//			{
+		//				if (!v[newObj.Location.X, newObj.Location.Y])
+		//				{
+		//					enemies.Add(curObject);
+		//					v[newObj.Location.X, newObj.Location.Y] = true;
+		//					Console.WriteLine(newObj.Location);
+		//				}
+		//				continue;
+		//			}
+		//			data.Enqueue(newObj);
+		//		}
+		//	}
+		//	return enemies;
+		//}
 
 		private bool IsSafetyObject(MapObjectData obj)
 		{
-			return obj == null || obj.Dwelling == null && obj.NeutralArmy == null && obj.Wall == null &&
-				   (obj.Garrison == null || obj.Garrison.Owner == sensorData.MyRespawnSide);
+			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
+			       (obj.Garrison?.Owner == null || obj.Garrison.Owner == sensorData.MyRespawnSide);
 		}
 
 	}
