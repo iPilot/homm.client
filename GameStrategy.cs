@@ -23,11 +23,11 @@ namespace Homm.Client
 			enemies = new HashSet<Location>();
 			dwellings = new Dictionary<UnitType, HashSet<Location>>();
 			mines = new Dictionary<Resource, HashSet<Location>>();
-			RefreshMapState(sensorData);
+			UpdateMap(sensorData);
 			mySide = sensorData.MyRespawnSide;
 		}
 
-		public void RefreshMapState(HommSensorData data)
+		public void UpdateMap(HommSensorData data)
 		{
 			foreach (var obj in data.Map.Objects)
 			{
@@ -106,6 +106,7 @@ namespace Homm.Client
 		{
 			var visited = new HashSet<Location> {sensorData.Location.ToLocation()};
 			InspectMapRec(visited);
+			client.Wait(25);
 		}
 
 		private void InspectMapRec(HashSet<Location> visited)
@@ -118,11 +119,10 @@ namespace Homm.Client
 				if (obj == null || visited.Contains(l) || !IsSafetyObject(obj)) continue;
 				visited.Add(l);
 				sensorData = client.Move(direction.Key);
-				map.RefreshMapState(sensorData);
+				map.UpdateMap(sensorData);
 				InspectMapRec(visited);
 				sensorData = client.Move(directions[direction.Key]);
 			}
-			
 		}
 
 		//public List<MapObjectData> FindEnemies(HommSensorData sensor)
