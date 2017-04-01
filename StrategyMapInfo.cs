@@ -8,6 +8,16 @@ namespace Homm.Client
 {
     public class StrategyMapInfo
     {
+		public static Dictionary<Direction, Direction> Directions = new Dictionary<Direction, Direction>
+		{
+ 			{Direction.LeftUp, Direction.RightDown},
+ 			{Direction.Up, Direction.Down},
+ 			{Direction.RightUp, Direction.LeftDown },
+ 			{Direction.RightDown, Direction.LeftUp},
+ 			{Direction.Down, Direction.Up},
+ 			{Direction.LeftDown, Direction.RightUp}
+ 		};
+
         private Dictionary<Location, MapObjectData> mapObjects;
         private HashSet<Location> enemies;
         private Dictionary<UnitType, HashSet<Location>> dwellings;
@@ -51,7 +61,54 @@ namespace Homm.Client
             }
         }
 
-        private List<Tuple<Location, int>> GetEnemiesPower()
+		public IEnumerable<Direction> GetPath(Location from, Location to)
+		{
+			var map = new Dictionary<Location, int>();
+			var q = new Queue<Location>();
+			var visited = new HashSet<Location>();
+			q.Enqueue(from);
+			visited.Add(from);
+			var pathLength = 0;
+			map[from] = pathLength;
+			while (q.Count > 0)
+			{
+				var location = q.Dequeue();
+				pathLength++;
+				foreach (var direction in Directions)
+				{
+					var objLocation = location.NeighborAt(direction.Key);
+					if (objLocation == to)
+					{
+						map[objLocation] = pathLength;
+						q.Clear();
+						break;
+					}
+					var obj = this[objLocation];
+					if (obj == null || visited.Contains(objLocation) || !IsSafetyObject(obj)) continue;
+					q.Enqueue(objLocation);
+					map[objLocation] = pathLength;
+					visited.Add(objLocation);
+				}
+			}
+			if (!map.ContainsKey(to)) yield break;
+			var result = new List<Direction>(pathLength);
+			while (pathLength > 0)
+			{
+				foreach (var direction in Directions)
+				{
+					var prevLocation = to.NeighborAt(direction.Key);
+					if (!map.ContainsKey(prevLocation) || map[prevLocation] + 1 != map[to]) continue;
+					pathLength--;
+					result.Add(direction.Value);
+					to = prevLocation;
+				}
+			}
+			for (var i = result.Count - 1; i >= 0; i--)
+				yield return result[i];
+		}
+
+
+		private List<Tuple<Location, int>> GetEnemiesPower()
         {
             var enemiesWithPower = new List<Tuple<Location, int>>();
             foreach (var location in enemies)
@@ -124,5 +181,11 @@ namespace Homm.Client
         {
             return obj.NeutralArmy != null || obj.Garrison != null && obj.Garrison.Owner != mySide;
         }
-    }
+
+		public bool IsSafetyObject(MapObjectData obj)
+ 		{
+ 			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
+ 				   (obj.Garrison?.Owner == null || obj.Garrison.Owner == mySide);
+ 		}
+}
 }

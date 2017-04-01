@@ -55,6 +55,7 @@
     <Compile Include="GameStrategy.cs" />
     <Compile Include="Homm.Client.Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StrategyMapInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
