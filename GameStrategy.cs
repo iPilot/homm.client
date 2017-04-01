@@ -50,6 +50,22 @@ namespace Homm.Client
 			}
 		}
 
+	    private List<Tuple<Location, int>> GetEnemiesPower()
+	    {
+	        var enemiesWithPower = new List<Tuple<Location, int>>();
+	        foreach (var location in enemies)
+	        {
+	            var army = mapObjects[location].NeutralArmy.Army;
+	            var power = 0;
+	            foreach (var unit in army)
+	            {
+	                power = unit.Value*UnitsConstants.Current.CombatPower[unit.Key];
+	            }
+                enemiesWithPower.Add(new Tuple<Location, int>(location, power));
+	        }
+	        return enemiesWithPower;
+	    }
+
 		public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 
 		public bool IsInside(Location l)
@@ -122,8 +138,11 @@ namespace Homm.Client
 				InspectMapRec(visited);
 				sensorData = client.Move(directions[direction.Key]);
 			}
-			
-		}
+        }
+       
+        
+
+
 
 		//public List<MapObjectData> FindEnemies(HommSensorData sensor)
 		//{
