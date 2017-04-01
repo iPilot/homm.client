@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using HoMM;
 using HoMM.ClientClasses;
 
@@ -63,7 +64,7 @@ namespace Homm.Client
 	            }
                 enemiesWithPower.Add(new Tuple<Location, int>(location, power));
 	        }
-	        return enemiesWithPower;
+	        return enemiesWithPower.OrderBy(x => x.Item2).ToList();
 	    }
 
 		public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
