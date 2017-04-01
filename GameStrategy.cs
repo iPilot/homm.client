@@ -23,11 +23,11 @@ namespace Homm.Client
 			enemies = new HashSet<Location>();
 			dwellings = new Dictionary<UnitType, HashSet<Location>>();
 			mines = new Dictionary<Resource, HashSet<Location>>();
-			UpdateMap(sensorData);
+			RefreshMapState(sensorData);
 			mySide = sensorData.MyRespawnSide;
 		}
 
-		public void UpdateMap(HommSensorData data)
+		public void RefreshMapState(HommSensorData data)
 		{
 			foreach (var obj in data.Map.Objects)
 			{
@@ -49,6 +49,22 @@ namespace Homm.Client
 				mapObjects[l] = obj;
 			}
 		}
+
+	    private List<Tuple<Location, int>> GetEnemiesPower()
+	    {
+	        var enemiesWithPower = new List<Tuple<Location, int>>();
+	        foreach (var location in enemies)
+	        {
+	            var army = mapObjects[location].NeutralArmy.Army;
+	            var power = 0;
+	            foreach (var unit in army)
+	            {
+	                power = unit.Value*UnitsConstants.Current.CombatPower[unit.Key];
+	            }
+                enemiesWithPower.Add(new Tuple<Location, int>(location, power));
+	        }
+	        return enemiesWithPower;
+	    }
 
 		public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 
@@ -106,7 +122,6 @@ namespace Homm.Client
 		{
 			var visited = new HashSet<Location> {sensorData.Location.ToLocation()};
 			InspectMapRec(visited);
-			client.Wait(25);
 		}
 
 		private void InspectMapRec(HashSet<Location> visited)
@@ -119,11 +134,15 @@ namespace Homm.Client
 				if (obj == null || visited.Contains(l) || !IsSafetyObject(obj)) continue;
 				visited.Add(l);
 				sensorData = client.Move(direction.Key);
-				map.UpdateMap(sensorData);
+				map.RefreshMapState(sensorData);
 				InspectMapRec(visited);
 				sensorData = client.Move(directions[direction.Key]);
 			}
-		}
+        }
+       
+        
+
+
 
 		//public List<MapObjectData> FindEnemies(HommSensorData sensor)
 		//{
