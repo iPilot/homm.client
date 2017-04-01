@@ -7,6 +7,15 @@ namespace Homm.Client
 {
 	public class StrategyMapInfo
 	{
+		public static Dictionary<Direction, Direction> Directions = new Dictionary<Direction, Direction>
+		{
+			{Direction.LeftUp, Direction.RightDown},
+			{Direction.Up, Direction.Down},
+			{Direction.RightUp, Direction.LeftDown },
+			{Direction.RightDown, Direction.LeftUp},
+			{Direction.Down, Direction.Up},
+			{Direction.LeftDown, Direction.RightUp}
+		};
 		private Dictionary<Location, MapObjectData> mapObjects;
 		private HashSet<Location> enemies;
 		private Dictionary<UnitType, HashSet<Location>> dwellings;
@@ -66,6 +75,8 @@ namespace Homm.Client
 			return enemiesWithPower;
 		}
 
+		
+
 		public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 
 		public bool IsInside(Location l)
@@ -87,6 +98,12 @@ namespace Homm.Client
 		private bool IsEnemy(MapObjectData obj)
 		{
 			return obj.NeutralArmy != null || obj.Garrison != null && obj.Garrison.Owner != mySide;
+		}
+
+		public bool IsSafetyObject(MapObjectData obj)
+		{
+			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
+				   (obj.Garrison?.Owner == null || obj.Garrison.Owner == mySide);
 		}
 	}
 }

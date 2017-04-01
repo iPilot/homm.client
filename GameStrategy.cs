@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using HoMM;
 using HoMM.ClientClasses;
 
@@ -10,15 +11,7 @@ namespace Homm.Client
 		private HommClient client;
 		private HommSensorData sensorData;
 		private StrategyMapInfo map;
-		private Dictionary<Direction, Direction> directions = new Dictionary<Direction, Direction>
-		{
-			{Direction.LeftUp, Direction.RightDown},
-			{Direction.Up, Direction.Down},
-			{Direction.RightUp, Direction.LeftDown },
-			{Direction.RightDown, Direction.LeftUp},
-			{Direction.Down, Direction.Up},
-			{Direction.LeftDown, Direction.RightUp}
-		};
+		
 
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
@@ -43,18 +36,27 @@ namespace Homm.Client
 		private void InspectMapRec(HashSet<Location> visited)
 		{
 			var location = sensorData.Location.ToLocation();
-			foreach (var direction in directions)
+			foreach (var direction in StrategyMapInfo.Directions)
 			{
 				var l = location.NeighborAt(direction.Key);
 				var obj = map[l];
-				if (obj == null || visited.Contains(l) || !IsSafetyObject(obj)) continue;
+				if (obj == null || visited.Contains(l) || !map.IsSafetyObject(obj)) continue;
 				visited.Add(l);
 				sensorData = client.Move(direction.Key);
 				map.UpdateMapState(sensorData);
 				InspectMapRec(visited);
-				sensorData = client.Move(directions[direction.Key]);
+				sensorData = client.Move(StrategyMapInfo.Directions[direction.Key]);
 			}
         }
+
+		private void MoveTo(Location target)
+		{
+			var path = map.GetPath(sensorData.Location.ToLocation(), target);
+			foreach (var direction in path)
+			{
+				sensorData = client.Move(direction);
+			}
+		}
        
 		//public List<MapObjectData> FindEnemies(HommSensorData sensor)
 		//{
@@ -87,11 +89,7 @@ namespace Homm.Client
 		//	return enemies;
 		//}
 
-		private bool IsSafetyObject(MapObjectData obj)
-		{
-			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
-			       (obj.Garrison?.Owner == null || obj.Garrison.Owner == sensorData.MyRespawnSide);
-		}
+		
 
 	}
 }
