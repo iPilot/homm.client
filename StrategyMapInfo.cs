@@ -19,21 +19,22 @@ namespace Homm.Client
  		};
 
         private Dictionary<Location, MapObjectData> mapObjects;
-        private HashSet<Location> enemies;
-        private Dictionary<UnitType, HashSet<Location>> dwellings;
-        private Dictionary<Resource, HashSet<Location>> mines;
         private readonly int height;
         private readonly int width;
         private readonly string mySide;
 
-        public StrategyMapInfo(HommSensorData sensorData)
+		public HashSet<Location> Enemies { get; }
+		public Dictionary<UnitType, HashSet<Location>> Dwellings { get; }
+		public Dictionary<Resource, HashSet<Location>> Mines { get; }
+
+		public StrategyMapInfo(HommSensorData sensorData)
         {
             height = sensorData.Map.Height;
             width = sensorData.Map.Width;
             mapObjects = new Dictionary<Location, MapObjectData>();
-            enemies = new HashSet<Location>();
-            dwellings = new Dictionary<UnitType, HashSet<Location>>();
-            mines = new Dictionary<Resource, HashSet<Location>>();
+            Enemies = new HashSet<Location>();
+            Dwellings = new Dictionary<UnitType, HashSet<Location>>();
+            Mines = new Dictionary<Resource, HashSet<Location>>();
             UpdateMapState(sensorData);
             mySide = sensorData.MyRespawnSide;
         }
@@ -43,18 +44,18 @@ namespace Homm.Client
             foreach (var obj in data.Map.Objects)
             {
                 var l = obj.Location.ToLocation();
-                if (IsEnemy(obj)) enemies.Add(l);
+                if (IsEnemy(obj)) Enemies.Add(l);
                 if (obj.Dwelling != null)
                 {
-                    if (!dwellings.ContainsKey(obj.Dwelling.UnitType))
-                        dwellings.Add(obj.Dwelling.UnitType, new HashSet<Location>());
-                    dwellings[obj.Dwelling.UnitType].Add(l);
+                    if (!Dwellings.ContainsKey(obj.Dwelling.UnitType))
+                        Dwellings.Add(obj.Dwelling.UnitType, new HashSet<Location>());
+                    Dwellings[obj.Dwelling.UnitType].Add(l);
                 }
                 if (obj.Mine != null)
                 {
-                    if (!mines.ContainsKey(obj.Mine.Resource))
-                        mines.Add(obj.Mine.Resource, new HashSet<Location>());
-                    mines[obj.Mine.Resource].Add(l);
+                    if (!Mines.ContainsKey(obj.Mine.Resource))
+                        Mines.Add(obj.Mine.Resource, new HashSet<Location>());
+                    Mines[obj.Mine.Resource].Add(l);
                 }
                 if (mapObjects.ContainsKey(l) && mapObjects[l] == obj) continue;
                 mapObjects[l] = obj;
@@ -111,7 +112,7 @@ namespace Homm.Client
 		private List<Tuple<Location, int>> GetEnemiesPower()
         {
             var enemiesWithPower = new List<Tuple<Location, int>>();
-            foreach (var location in enemies)
+            foreach (var location in Enemies)
             {
                 var army = mapObjects[location].NeutralArmy.Army;
                 var power = 0;

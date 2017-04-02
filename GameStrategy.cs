@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http.Headers;
 using HoMM;
 using HoMM.ClientClasses;
@@ -24,7 +25,12 @@ namespace Homm.Client
 		public void Execute()
 		{
 			InspectMap();
-			client.Wait(25);
+			client.Wait(3);
+			foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
+			{
+				MoveTo(dwelling);
+				client.Wait(2);
+			}
 		}
 
 		private void InspectMap()
