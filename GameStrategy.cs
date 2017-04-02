@@ -18,7 +18,7 @@ namespace Homm.Client
 		{
 			this.client = client;
 			//TODO: FIX PARAMETRES
-			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true);
+			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true, timeLimit: 300);
 			map = new StrategyMapInfo(sensorData);
 		}
 
