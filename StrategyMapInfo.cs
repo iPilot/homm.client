@@ -64,42 +64,40 @@ namespace Homm.Client
 
 		public IEnumerable<Direction> GetPath(Location from, Location to)
 		{
+			if (from == to) yield break;
 			var map = new Dictionary<Location, int>();
 			var q = new Queue<Location>();
 			var visited = new HashSet<Location>();
 			q.Enqueue(from);
 			visited.Add(from);
-			var pathLength = 0;
-			map[from] = pathLength;
+			map[from] = 0;
 			while (q.Count > 0)
 			{
 				var location = q.Dequeue();
-				pathLength++;
 				foreach (var direction in Directions)
 				{
 					var objLocation = location.NeighborAt(direction.Key);
 					if (objLocation == to)
 					{
-						map[objLocation] = pathLength;
+						map[objLocation] = map[location] + 1;
 						q.Clear();
 						break;
 					}
 					var obj = this[objLocation];
 					if (obj == null || visited.Contains(objLocation) || !IsSafetyObject(obj)) continue;
 					q.Enqueue(objLocation);
-					map[objLocation] = pathLength;
+					map[objLocation] = map[location] + 1;
 					visited.Add(objLocation);
 				}
 			}
 			if (!map.ContainsKey(to)) yield break;
-			var result = new List<Direction>(pathLength);
-			while (pathLength > 0)
+			var result = new List<Direction>(map[to] + 1);
+			while (to != from)
 			{
 				foreach (var direction in Directions)
 				{
 					var prevLocation = to.NeighborAt(direction.Key);
 					if (!map.ContainsKey(prevLocation) || map[prevLocation] + 1 != map[to]) continue;
-					pathLength--;
 					result.Add(direction.Value);
 					to = prevLocation;
 				}
@@ -167,7 +165,7 @@ namespace Homm.Client
             return l.X >= 0 && l.X < width && l.Y >= 0 && l.Y < height;
         }
 
-        private bool IsOpponentRespawn(Location l)
+        private bool IsOpponentCastle(Location l)
         {
             return mySide == "Left" && l.X == width - 1 && l.Y == height - 1 ||
                    mySide == "Right" && l.X == 0 && l.Y == 0;
@@ -175,7 +173,7 @@ namespace Homm.Client
 
         private bool IsAvailableCell(Location l)
         {
-            return IsInside(l) && !IsOpponentRespawn(l);
+            return IsInside(l) && !IsOpponentCastle(l);
         }
 
         private bool IsEnemy(MapObjectData obj)
