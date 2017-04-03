@@ -46,16 +46,13 @@ namespace Homm.Client
                             //или где-то просто не обновилась инфа :)
                             MoveTo(map.Mines[Resource.Gold].First());
                             MoveTo(location);
-                            map.UpdateMapState(sensorData);
                         }
                         MoveTo(location);
                         sensorData = client.HireUnits(unit.Value);
                     }
                     MoveTo(enemy);
-                    map.Enemies.Remove(enemy);
                     sensorData = map.InspectMap(sensorData);
                     enemy = map.GetRichestEnemy();
-                    map.UpdateMapState(sensorData);
                     continue;
                 }
                 enemy = null;
@@ -146,13 +143,11 @@ namespace Homm.Client
                 [UnitType.Infantry] = 0
             };
             var types = new List<UnitType>
-        {
-            UnitType.Militia, UnitType.Cavalry, UnitType.Ranged, UnitType.Infantry
-        };
-            var needToCount = new List<bool>();
-            foreach (var type in types)
-                needToCount.Add(map.Dwellings.ContainsKey(type) ? true : false);
-            foreach (var mil in AlternativePurchases(types[0], myRes, needToCount[0]))
+			{
+				UnitType.Militia, UnitType.Cavalry, UnitType.Ranged, UnitType.Infantry
+			};
+            var needToCount = types.Select(type => map.Dwellings.ContainsKey(type)).ToList();
+	        foreach (var mil in AlternativePurchases(types[0], myRes, needToCount[0]))
             {
                 needArmy[types[0]] = mil.Item2;
                 if (IsWinner(GetSumArmy(needArmy), enemyArmy)) return needArmy;

@@ -25,18 +25,19 @@ namespace Homm.Client
         private readonly string mySide;
 	    private HommClient client;
 	    private double WorldCurrentTime;
+		private HashSet<Location> enemies { get; }
 
-		public HashSet<Location> Enemies { get; }
 		public Dictionary<UnitType, HashSet<Location>> Dwellings { get; }
 		public Dictionary<Resource, HashSet<Location>> Mines { get; }
 
 		public StrategyMapInfo(HommClient client, HommSensorData sensorData)
-        {
+		{
+			client.OnSensorDataReceived += UpdateMapState;
             height = sensorData.Map.Height;
             width = sensorData.Map.Width;
 			visited = new HashSet<Location>();
             mapObjects = new Dictionary<Location, MapObjectData>();
-            Enemies = new HashSet<Location>();
+            enemies = new HashSet<Location>();
             Dwellings = new Dictionary<UnitType, HashSet<Location>>();
             Mines = new Dictionary<Resource, HashSet<Location>>();
             UpdateMapState(sensorData);
@@ -52,6 +53,7 @@ namespace Homm.Client
                 var l = obj.Location.ToLocation();
                 if (mapObjects.ContainsKey(l) && mapObjects[l] == obj) continue;
                 mapObjects[l] = obj;
+	            if (enemies.Contains(l)) enemies.Remove(l);
             }
 	        WorldCurrentTime = data.WorldCurrentTime;
         }
@@ -77,7 +79,7 @@ namespace Homm.Client
 
 		public Location GetRichestEnemy()
 		{
-			return Enemies.Select(enemy => Tuple.Create(InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
+			return enemies.Select(enemy => Tuple.Create(InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
 		}
 
 		private int InspectBeyondEnemy(Location location)
@@ -111,7 +113,7 @@ namespace Homm.Client
 
 		private void AddObject(MapObjectData obj, Location location)
 	    {
-			if (IsEnemy(obj)) Enemies.Add(location);
+			if (IsEnemy(obj)) enemies.Add(location);
 			if (obj.Dwelling != null)
 			{
 				if (!Dwellings.ContainsKey(obj.Dwelling.UnitType))
