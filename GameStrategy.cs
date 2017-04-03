@@ -32,11 +32,6 @@ namespace Homm.Client
 			MoveTo(new Location(0, 0));
 		}
 
-		private Location GetRichestEnemy()
-		{
-			return map.Enemies.Select(enemy => Tuple.Create(map.InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
-		}
-
 		private void MoveTo(Location target)
 		{
 			var path = map.GetPath(sensorData.Location.ToLocation(), target);

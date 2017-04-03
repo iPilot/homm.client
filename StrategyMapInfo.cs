@@ -74,7 +74,12 @@ namespace Homm.Client
 			}
 		}
 
-		public int InspectBeyondEnemy(Location location)
+		public Location GetRichestEnemy()
+		{
+			return Enemies.Select(enemy => Tuple.Create(InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
+		}
+
+		private int InspectBeyondEnemy(Location location)
 		{
 			var visitedCopy = new HashSet<Location>(visited);
 			return InspectBeyondEnemyRec(location, visitedCopy);
