@@ -179,42 +179,7 @@ namespace Homm.Client
             return power;
         }
 
-		private Dictionary<UnitType, int> GetSumArmy(Dictionary<UnitType, int> needArmy, Dictionary<UnitType, int> myArmy)
-		{
-			var newArmy = new Dictionary<UnitType, int>();
-			foreach (var unit in needArmy)
-				newArmy[unit.Key] = myArmy.ContainsKey(unit.Key)
-				? needArmy[unit.Key] + myArmy[unit.Key] : needArmy[unit.Key];
-			return newArmy;
-		}
-
-		private bool IsWinner(Dictionary<UnitType, int> myArmy, Dictionary<UnitType, int> enemyArmy)
-		{
-			return Combat.Resolve(new ArmiesPair(myArmy, enemyArmy)).IsAttackerWin;
-		}
-
-		private int HowMuchCanBuy(UnitType unit, Dictionary<Resource, int> myRes)
-		{
-			return myRes.Select(x =>
-			{
-				if (!UnitsConstants.Current.UnitCost[unit].ContainsKey(x.Key))
-					return int.MaxValue;
-				return x.Value / UnitsConstants.Current.UnitCost[unit][x.Key];
-			}).Min();
-		}
-
-		private Dictionary<Resource, int> BuyUnit(int count, UnitType unit, Dictionary<Resource, int> myRes)
-		{
-			var newResource = new Dictionary<Resource, int>();
-			foreach (var res in myRes)
-				if (!UnitsConstants.Current.UnitCost[unit].ContainsKey(res.Key))
-					newResource[res.Key] = res.Value;
-				else
-					newResource[res.Key] = res.Value - UnitsConstants.Current.UnitCost[unit][res.Key] * count;
-			return newResource;
-		}
-
-		public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
+        public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 
         public bool IsInside(Location l)
         {
