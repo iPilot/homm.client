@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using HoMM;
 using HoMM.ClientClasses;
+using HoMM.Robot.ArmyInterface;
 
 namespace Homm.Client
 {
@@ -12,6 +13,7 @@ namespace Homm.Client
 		private HommClient client;
 		private HommSensorData sensorData;
 		private StrategyMapInfo map;
+		private HashSet<Location> visited;
 
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
@@ -34,12 +36,6 @@ namespace Homm.Client
 
 		private void InspectMap()
 		{
-			var visited = new HashSet<Location> {sensorData.Location.ToLocation()};
-			InspectMapRec(visited);
-		}
-
-		private void InspectMapRec(HashSet<Location> visited)
-		{
 			var location = sensorData.Location.ToLocation();
 			foreach (var direction in StrategyMapInfo.Directions)
 			{
@@ -51,10 +47,15 @@ namespace Homm.Client
 				visited.Add(l);
 				sensorData = client.Move(direction.Key);
 				map.UpdateMapState(sensorData);
-				InspectMapRec(visited);
+				InspectMap();
 				sensorData = client.Move(StrategyMapInfo.Directions[direction.Key]);
 			}
         }
+
+		private void InspectBeyondEnemy()
+		{
+			
+		}
 
 		private void MoveTo(Location target)
 		{
