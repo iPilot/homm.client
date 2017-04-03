@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Headers;
 using HoMM;
 using HoMM.ClientClasses;
-using HoMM.Robot.ArmyInterface;
 
 namespace Homm.Client
 {
@@ -33,8 +30,6 @@ namespace Homm.Client
 				client.Wait(2);
 			}
 		}
-
-		
 
 		private void MoveTo(Location target)
 		{

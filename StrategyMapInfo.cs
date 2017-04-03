@@ -94,7 +94,7 @@ namespace Homm.Client
 			return result;
 		}
 
-		private int GetCellValue(MapObjectData obj)
+		public int GetCellValue(MapObjectData obj)
 		{
 			if (obj.ResourcePile != null)
 				return obj.ResourcePile.Amount;
@@ -103,7 +103,7 @@ namespace Homm.Client
 			return 0;
 		}
 
-		public void AddObject(MapObjectData obj, Location location)
+		private void AddObject(MapObjectData obj, Location location)
 	    {
 			if (IsEnemy(obj)) Enemies.Add(location);
 			if (obj.Dwelling != null)
@@ -125,9 +125,9 @@ namespace Homm.Client
 			if (from == to) yield break;
 			var map = new Dictionary<Location, int>();
 			var q = new Queue<Location>();
-			var visited = new HashSet<Location>();
+			var visitedLocations = new HashSet<Location>();
 			q.Enqueue(from);
-			visited.Add(from);
+			visitedLocations.Add(from);
 			map[from] = 0;
 			while (q.Count > 0)
 			{
@@ -142,10 +142,10 @@ namespace Homm.Client
 						break;
 					}
 					var obj = this[objLocation];
-					if (obj == null || visited.Contains(objLocation) || !IsSafetyObject(obj)) continue;
+					if (obj == null || visitedLocations.Contains(objLocation) || !IsSafetyObject(obj)) continue;
 					q.Enqueue(objLocation);
 					map[objLocation] = map[location] + 1;
-					visited.Add(objLocation);
+					visitedLocations.Add(objLocation);
 				}
 			}
 			if (!map.ContainsKey(to)) yield break;
@@ -239,10 +239,47 @@ namespace Homm.Client
             return obj.NeutralArmy != null || obj.Garrison != null && obj.Garrison.Owner != mySide;
         }
 
-		public bool IsSafetyObject(MapObjectData obj)
+		private bool IsSafetyObject(MapObjectData obj)
  		{
  			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
  				   (obj.Garrison?.Owner == null || obj.Garrison.Owner == mySide);
  		}
-}
+
+	    public static void Print(HommSensorData data)
+	    {
+		    Console.WriteLine("---------------------------------");
+
+		    Console.WriteLine($"You are here: ({data.Location.X},{data.Location.Y})");
+
+		    Console.WriteLine($"You have {data.MyTreasury.Select(z => z.Value + " " + z.Key).Aggregate((a, b) => a + ", " + b)}");
+
+		    var location = data.Location.ToLocation();
+
+		    Console.Write("W: ");
+		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.Up)));
+
+		    Console.Write("E: ");
+		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.RightUp)));
+
+		    Console.Write("D: ");
+		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.RightDown)));
+
+		    Console.Write("S: ");
+		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.Down)));
+
+		    Console.Write("A: ");
+		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.LeftDown)));
+
+		    Console.Write("Q: ");
+		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.LeftUp)));
+	    }
+
+	    private static string GetObjectAt(MapData map, Location location)
+	    {
+		    if (location.X < 0 || location.X >= map.Width || location.Y < 0 || location.Y >= map.Height)
+			    return "Outside";
+		    return map.Objects.FirstOrDefault(x => x.Location.X == location.X && x.Location.Y == location.Y)
+			           ?.ToString() ?? "Nothing";
+	    }
+    }
 }
