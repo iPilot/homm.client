@@ -13,21 +13,19 @@ namespace Homm.Client
 		private HommClient client;
 		private HommSensorData sensorData;
 		private StrategyMapInfo map;
-		private HashSet<Location> visited;
-		private HommRules rules;
+		public static HommRules Rules = new HommRules();
 
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
 			this.client = client;
 			//TODO: FIX PARAMETRES
 			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true, timeLimit: 300);
-			map = new StrategyMapInfo(sensorData);
-			rules = new HommRules();
+			map = new StrategyMapInfo(client, sensorData);
+			Rules = new HommRules();
 		}
 
 		public void Execute()
 		{
-			InspectMap();
 			client.Wait(3);
 			foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
 			{
@@ -36,52 +34,7 @@ namespace Homm.Client
 			}
 		}
 
-		private void InspectMap()
-		{
-			var location = sensorData.Location.ToLocation();
-			foreach (var direction in StrategyMapInfo.Directions)
-			{
-				var l = location.NeighborAt(direction.Key);
-				var obj = map[l];
-				if (obj == null) continue;
-				map.AddObject(obj, l);
-				if (visited.Contains(l) || !map.IsSafetyObject(obj)) continue;
-				visited.Add(l);
-				sensorData = client.Move(direction.Key);
-				map.UpdateMapState(sensorData);
-				InspectMap();
-				sensorData = client.Move(StrategyMapInfo.Directions[direction.Key]);
-			}
-		}
-
-		private int InspectBeyondEnemy(Location location)
-		{
-			var visitedCopy = new HashSet<Location>(visited);
-			return __inspectBeyondEnemyRec(location, visitedCopy);
-		}
-
-		private int __inspectBeyondEnemyRec(Location location, HashSet<Location> visited)
-		{
-			var result = GetCellValue(map[location]);
-			foreach (var direction in StrategyMapInfo.Directions)
-			{
-				var l = location.NeighborAt(direction.Key);
-				var obj = map[l];
-				if (obj == null || visited.Contains(l) || !map.IsSafetyObject(obj)) continue;
-				visited.Add(l);
-				result += __inspectBeyondEnemyRec(l, visited);
-			}
-			return result;
-		}
-
-		private int GetCellValue(MapObjectData obj)
-		{
-			if (obj.ResourcePile != null)
-				return obj.ResourcePile.Amount;
-			if (obj.Mine != null && obj.NeutralArmy == null && obj.Garrison == null)
-				return (int) (rules.CombatDuration - sensorData.WorldCurrentTime);
-			return 0;
-		}
+		
 
 		private void MoveTo(Location target)
 		{

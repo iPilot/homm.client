@@ -19,24 +19,31 @@ namespace Homm.Client
  		};
 
         private Dictionary<Location, MapObjectData> mapObjects;
-        private readonly int height;
+		private HashSet<Location> visited;
+		private readonly int height;
         private readonly int width;
         private readonly string mySide;
+	    private HommClient client;
+	    private double WorldCurrentTime;
 
 		public HashSet<Location> Enemies { get; }
 		public Dictionary<UnitType, HashSet<Location>> Dwellings { get; }
 		public Dictionary<Resource, HashSet<Location>> Mines { get; }
 
-		public StrategyMapInfo(HommSensorData sensorData)
+		public StrategyMapInfo(HommClient client, HommSensorData sensorData)
         {
             height = sensorData.Map.Height;
             width = sensorData.Map.Width;
+			visited = new HashSet<Location>();
             mapObjects = new Dictionary<Location, MapObjectData>();
             Enemies = new HashSet<Location>();
             Dwellings = new Dictionary<UnitType, HashSet<Location>>();
             Mines = new Dictionary<Resource, HashSet<Location>>();
             UpdateMapState(sensorData);
             mySide = sensorData.MyRespawnSide;
+	        this.client = client;
+	        WorldCurrentTime = sensorData.WorldCurrentTime;
+			InspectMap(sensorData);
         }
 
         public void UpdateMapState(HommSensorData data)
@@ -47,7 +54,54 @@ namespace Homm.Client
                 if (mapObjects.ContainsKey(l) && mapObjects[l] == obj) continue;
                 mapObjects[l] = obj;
             }
+	        WorldCurrentTime = data.WorldCurrentTime;
         }
+
+		public void InspectMap(HommSensorData sensorData)
+		{
+			var location = sensorData.Location.ToLocation();
+			UpdateMapState(sensorData);
+			foreach (var direction in Directions)
+			{
+				var l = location.NeighborAt(direction.Key);
+				var obj = this[l];
+				if (obj == null) continue;
+				AddObject(obj, l);
+				if (visited.Contains(l) || !IsSafetyObject(obj)) continue;
+				visited.Add(l);
+				InspectMap(client.Move(direction.Key));
+				client.Move(Directions[direction.Key]);
+			}
+		}
+
+		public int InspectBeyondEnemy(Location location)
+		{
+			var visitedCopy = new HashSet<Location>(visited);
+			return InspectBeyondEnemyRec(location, visitedCopy);
+		}
+
+		private int InspectBeyondEnemyRec(Location location, HashSet<Location> visitedBeyondEnemy)
+		{
+			var result = GetCellValue(this[location]);
+			foreach (var direction in Directions)
+			{
+				var l = location.NeighborAt(direction.Key);
+				var obj = this[l];
+				if (obj == null || visitedBeyondEnemy.Contains(l) || !IsSafetyObject(obj)) continue;
+				visitedBeyondEnemy.Add(l);
+				result += InspectBeyondEnemyRec(l, visitedBeyondEnemy);
+			}
+			return result;
+		}
+
+		private int GetCellValue(MapObjectData obj)
+		{
+			if (obj.ResourcePile != null)
+				return obj.ResourcePile.Amount;
+			if (obj.Mine != null && obj.NeutralArmy == null && obj.Garrison == null)
+				return (int)(GameStrategy.Rules.CombatDuration - WorldCurrentTime);
+			return 0;
+		}
 
 		public void AddObject(MapObjectData obj, Location location)
 	    {
