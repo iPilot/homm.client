@@ -237,42 +237,5 @@ namespace Homm.Client
  			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
  				   (obj.Garrison?.Owner == null || obj.Garrison.Owner == mySide);
  		}
-
-	    public static void Print(HommSensorData data)
-	    {
-		    Console.WriteLine("---------------------------------");
-
-		    Console.WriteLine($"You are here: ({data.Location.X},{data.Location.Y})");
-
-		    Console.WriteLine($"You have {data.MyTreasury.Select(z => z.Value + " " + z.Key).Aggregate((a, b) => a + ", " + b)}");
-
-		    var location = data.Location.ToLocation();
-
-		    Console.Write("W: ");
-		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.Up)));
-
-		    Console.Write("E: ");
-		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.RightUp)));
-
-		    Console.Write("D: ");
-		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.RightDown)));
-
-		    Console.Write("S: ");
-		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.Down)));
-
-		    Console.Write("A: ");
-		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.LeftDown)));
-
-		    Console.Write("Q: ");
-		    Console.WriteLine(GetObjectAt(data.Map, location.NeighborAt(Direction.LeftUp)));
-	    }
-
-	    private static string GetObjectAt(MapData map, Location location)
-	    {
-		    if (location.X < 0 || location.X >= map.Width || location.Y < 0 || location.Y >= map.Height)
-			    return "Outside";
-		    return map.Objects.FirstOrDefault(x => x.Location.X == location.X && x.Location.Y == location.Y)
-			           ?.ToString() ?? "Nothing";
-	    }
     }
 }
