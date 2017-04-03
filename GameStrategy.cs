@@ -29,6 +29,12 @@ namespace Homm.Client
 				MoveTo(dwelling);
 				client.Wait(2);
 			}
+			MoveTo(new Location(0, 0));
+		}
+
+		private Location GetRichestEnemy()
+		{
+			return map.Enemies.Select(enemy => Tuple.Create(map.InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
 		}
 
 		private void MoveTo(Location target)
