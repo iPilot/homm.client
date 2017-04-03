@@ -14,6 +14,7 @@ namespace Homm.Client
 		private HommSensorData sensorData;
 		private StrategyMapInfo map;
 		private HashSet<Location> visited;
+		private HommRules rules;
 
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
@@ -21,6 +22,7 @@ namespace Homm.Client
 			//TODO: FIX PARAMETRES
 			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true, timeLimit: 300);
 			map = new StrategyMapInfo(sensorData);
+			rules = new HommRules();
 		}
 
 		public void Execute()
@@ -50,11 +52,35 @@ namespace Homm.Client
 				InspectMap();
 				sensorData = client.Move(StrategyMapInfo.Directions[direction.Key]);
 			}
-        }
+		}
 
-		private void InspectBeyondEnemy()
+		private int InspectBeyondEnemy(Location location)
 		{
-			
+			var visitedCopy = new HashSet<Location>(visited);
+			return __inspectBeyondEnemyRec(location, visitedCopy);
+		}
+
+		private int __inspectBeyondEnemyRec(Location location, HashSet<Location> visited)
+		{
+			var result = GetCellValue(map[location]);
+			foreach (var direction in StrategyMapInfo.Directions)
+			{
+				var l = location.NeighborAt(direction.Key);
+				var obj = map[l];
+				if (obj == null || visited.Contains(l) || !map.IsSafetyObject(obj)) continue;
+				visited.Add(l);
+				result += __inspectBeyondEnemyRec(l, visited);
+			}
+			return result;
+		}
+
+		private int GetCellValue(MapObjectData obj)
+		{
+			if (obj.ResourcePile != null)
+				return obj.ResourcePile.Amount;
+			if (obj.Mine != null && obj.NeutralArmy == null && obj.Garrison == null)
+				return (int) (rules.CombatDuration - sensorData.WorldCurrentTime);
+			return 0;
 		}
 
 		private void MoveTo(Location target)
