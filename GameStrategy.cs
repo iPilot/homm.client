@@ -26,7 +26,8 @@ namespace Homm.Client
 
 		public void Execute()
 		{
-		    map.InspectMap(sensorData);
+		    sensorData = map.InspectMap(sensorData);
+		    sensorData = client.Wait(1);
 		    Location enemy = map.GetRichestEnemy();
 		    while (enemy != null)
 		    {
@@ -41,8 +42,10 @@ namespace Homm.Client
 		                sensorData = client.HireUnits(unit.Value);
 		            }
 		            MoveTo(enemy);
+		            map.Enemies.Remove(enemy);
                     map.InspectMap(sensorData);
-		            enemy = map.GetRichestEnemy();
+                    sensorData = client.Wait(1);
+                    enemy = map.GetRichestEnemy();
                     continue;
 		        }
 		        enemy = null;
