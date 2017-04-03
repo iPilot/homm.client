@@ -23,12 +23,19 @@ namespace Homm.Client
 
 		public void Execute()
 		{
+			sensorData = map.InspectMap(sensorData);
 			client.Wait(3);
-			foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
-			{
-				MoveTo(dwelling);
-				client.Wait(2);
-			}
+			//foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
+			//{
+			//	MoveTo(dwelling);
+			//	client.Wait(2);
+			//}
+			MoveTo(map.Dwellings[UnitType.Cavalry].First());
+			//client.Wait(3);
+			sensorData = client.HireUnits(map[sensorData.Location.ToLocation()].Dwelling.AvailableToBuyCount);
+			//client.Wait(3);
+			MoveTo(new Location(12, 2));
+			sensorData = map.InspectMap(sensorData);
 			MoveTo(new Location(0, 0));
 		}
 

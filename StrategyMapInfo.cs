@@ -43,7 +43,6 @@ namespace Homm.Client
             mySide = sensorData.MyRespawnSide;
 	        this.client = client;
 	        WorldCurrentTime = sensorData.WorldCurrentTime;
-			InspectMap(sensorData);
         }
 
         public void UpdateMapState(HommSensorData data)
@@ -57,10 +56,11 @@ namespace Homm.Client
 	        WorldCurrentTime = data.WorldCurrentTime;
         }
 
-		public void InspectMap(HommSensorData sensorData)
+		public HommSensorData InspectMap(HommSensorData sensorData)
 		{
 			var location = sensorData.Location.ToLocation();
 			UpdateMapState(sensorData);
+			var result = sensorData;
 			foreach (var direction in Directions)
 			{
 				var l = location.NeighborAt(direction.Key);
@@ -70,8 +70,9 @@ namespace Homm.Client
 				if (visited.Contains(l) || !IsSafetyObject(obj)) continue;
 				visited.Add(l);
 				InspectMap(client.Move(direction.Key));
-				client.Move(Directions[direction.Key]);
+				result = client.Move(Directions[direction.Key]);
 			}
+			return result;
 		}
 
 		public Location GetRichestEnemy()
