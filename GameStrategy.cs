@@ -17,50 +17,60 @@ namespace Homm.Client
 		{
 			this.client = client;
 			//TODO: FIX PARAMETRES
-			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true, timeLimit: 300);
+			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true, timeLimit: 1500);
 			map = new StrategyMapInfo(client, sensorData);
 			Rules = new HommRules();
 		}
 
 
 
-		public void Execute()
-		{
-		    sensorData = map.InspectMap(sensorData);
-		    sensorData = client.Wait(1);
-		    Location enemy = map.GetRichestEnemy();
-		    while (enemy != null)
-		    {
-		        var arm = GetArmyToWin(enemy);
-		        if (arm != null)
-		        {
-		            foreach (var unit in arm)
-		            {
-		                if (unit.Value == 0) continue;
-                        var location = map.Dwellings[unit.Key].First();
+        public void Execute()
+        {
+            sensorData = map.InspectMap(sensorData);
+            Location enemy = map.GetRichestEnemy();
+            while (enemy != null)
+            {
+                var arm = GetArmyToWin(enemy);
+                if (arm != null)
+                {
+                    foreach (var unit in arm)
+                    {
+                        if (unit.Value == 0) continue;
+                        var location = map.Dwellings[unit.Key]
+                            .Select(x => x).Argmax(x => map[x].Dwelling.AvailableToBuyCount);
+                        while (map[location].Dwelling.AvailableToBuyCount < unit.Value)
+                        {
+                            //в это месте он начинает бегать туда сюда по неизвестной причине
+                            //видимо когда-то у Dwelling наступает предел восполнения
+                            //и он больше не выдает юнитов
+                            //или где-то просто не обновилась инфа :)
+                            MoveTo(map.Mines[Resource.Gold].First());
+                            MoveTo(location);
+                            map.UpdateMapState(sensorData);
+                        }
                         MoveTo(location);
-		                sensorData = client.HireUnits(unit.Value);
-		            }
-		            MoveTo(enemy);
-		            map.Enemies.Remove(enemy);
-                    map.InspectMap(sensorData);
-                    sensorData = client.Wait(1);
+                        sensorData = client.HireUnits(unit.Value);
+                    }
+                    MoveTo(enemy);
+                    map.Enemies.Remove(enemy);
+                    sensorData = map.InspectMap(sensorData);
                     enemy = map.GetRichestEnemy();
+                    map.UpdateMapState(sensorData);
                     continue;
-		        }
-		        enemy = null;
-		    }
+                }
+                enemy = null;
+            }
 
-			client.Wait(3);
-			//foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
-			//{
-			//	MoveTo(dwelling);
-			//	client.Wait(2);
-			//}
-			//MoveTo(new Location(0, 0));
-		}
+            client.Wait(3);
+            //foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
+            //{
+            //	MoveTo(dwelling);
+            //	client.Wait(2);
+            //}
+            //MoveTo(new Location(0, 0));
+        }
 
-		private void MoveTo(Location target)
+        private void MoveTo(Location target)
 		{
 			var path = map.GetPath(sensorData.Location.ToLocation(), target);
 			foreach (var direction in path)
@@ -136,9 +146,9 @@ namespace Homm.Client
                 [UnitType.Infantry] = 0
             };
             var types = new List<UnitType>
-            {
-                UnitType.Militia, UnitType.Cavalry, UnitType.Ranged, UnitType.Infantry
-            };
+        {
+            UnitType.Militia, UnitType.Cavalry, UnitType.Ranged, UnitType.Infantry
+        };
             var needToCount = new List<bool>();
             foreach (var type in types)
                 needToCount.Add(map.Dwellings.ContainsKey(type) ? true : false);
