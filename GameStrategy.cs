@@ -12,7 +12,6 @@ namespace Homm.Client
 		private HommClient client;
 		private HommSensorData sensorData;
 		private StrategyMapInfo map;
-		
 
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
@@ -46,7 +45,9 @@ namespace Homm.Client
 			{
 				var l = location.NeighborAt(direction.Key);
 				var obj = map[l];
-				if (obj == null || visited.Contains(l) || !map.IsSafetyObject(obj)) continue;
+				if (obj == null) continue;
+				map.AddObject(obj, l);
+				if (visited.Contains(l) || !map.IsSafetyObject(obj)) continue;
 				visited.Add(l);
 				sensorData = client.Move(direction.Key);
 				map.UpdateMapState(sensorData);
@@ -94,8 +95,5 @@ namespace Homm.Client
 		//	}
 		//	return enemies;
 		//}
-
-		
-
 	}
 }

@@ -44,23 +44,27 @@ namespace Homm.Client
             foreach (var obj in data.Map.Objects)
             {
                 var l = obj.Location.ToLocation();
-                if (IsEnemy(obj)) Enemies.Add(l);
-                if (obj.Dwelling != null)
-                {
-                    if (!Dwellings.ContainsKey(obj.Dwelling.UnitType))
-                        Dwellings.Add(obj.Dwelling.UnitType, new HashSet<Location>());
-                    Dwellings[obj.Dwelling.UnitType].Add(l);
-                }
-                if (obj.Mine != null)
-                {
-                    if (!Mines.ContainsKey(obj.Mine.Resource))
-                        Mines.Add(obj.Mine.Resource, new HashSet<Location>());
-                    Mines[obj.Mine.Resource].Add(l);
-                }
                 if (mapObjects.ContainsKey(l) && mapObjects[l] == obj) continue;
                 mapObjects[l] = obj;
             }
         }
+
+		public void AddObject(MapObjectData obj, Location location)
+	    {
+			if (IsEnemy(obj)) Enemies.Add(location);
+			if (obj.Dwelling != null)
+			{
+				if (!Dwellings.ContainsKey(obj.Dwelling.UnitType))
+					Dwellings.Add(obj.Dwelling.UnitType, new HashSet<Location>());
+				Dwellings[obj.Dwelling.UnitType].Add(location);
+			}
+			if (obj.Mine != null)
+			{
+				if (!Mines.ContainsKey(obj.Mine.Resource))
+					Mines.Add(obj.Mine.Resource, new HashSet<Location>());
+				Mines[obj.Mine.Resource].Add(location);
+			}
+		}
 
 		public IEnumerable<Direction> GetPath(Location from, Location to)
 		{
