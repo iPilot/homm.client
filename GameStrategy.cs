@@ -29,6 +29,7 @@ namespace Homm.Client
             while (enemy != null)
             {
                 var arm = GetArmyToWin(enemy);
+				var arm2 = new ArmyCalculator(sensorData, enemy, map).GetArmyToWin();
                 if (arm != null)
                 {
                     foreach (var unit in arm)

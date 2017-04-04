@@ -8,20 +8,20 @@ namespace Homm.Client
 {
 	public class ArmyCalculator
 	{
-		private Dictionary<Resource, int> resources;
-		private Dictionary<UnitType, int> myArmy, enemyArmy;
+		private readonly Dictionary<Resource, int> resources;
+		private readonly Dictionary<UnitType, int> myArmy, enemyArmy;
 		private readonly StrategyMapInfo map;
-		private static Dictionary<UnitType, Dictionary<Resource, int>> unitCost = UnitsConstants.Current.UnitCost;
+		private static readonly Dictionary<UnitType, Dictionary<Resource, int>> unitCost = UnitsConstants.Current.UnitCost;
 		private static readonly List<UnitType> types = new List<UnitType>
 		{
 			UnitType.Militia, UnitType.Cavalry, UnitType.Ranged, UnitType.Infantry
 		};
 
-		public ArmyCalculator(HommSensorData heroInfo, Dictionary<UnitType, int> enemy, StrategyMapInfo map)
+		public ArmyCalculator(HommSensorData heroInfo, Location enemyLocation, StrategyMapInfo map)
 		{
 			resources = new Dictionary<Resource, int>(heroInfo.MyTreasury);
 			myArmy = new Dictionary<UnitType, int>(heroInfo.MyArmy);
-			enemyArmy = enemy;
+			enemyArmy = map[enemyLocation].NeutralArmy?.Army ?? map[enemyLocation].Garrison?.Army;
 			this.map = map;
 		}
 
@@ -38,7 +38,7 @@ namespace Homm.Client
 			return Math.Min(availableCount, unitCost[unitType].Min(x => resources[x.Key] / x.Value));
 		}
 
-		private void ManadgeArmy(UnitType unitType, int count, bool buy)
+		private void ManageArmy(UnitType unitType, int count, bool buy)
 		{
 			var c = buy ? -1 : 1 * count;
 			foreach (var resource in unitCost[unitType])
@@ -53,16 +53,15 @@ namespace Homm.Client
 
 		private bool GetArmyToWinRec(int typeIndex)
 		{
-			if (typeIndex == types.Count) return false;
+			if (typeIndex == types.Count) return IsWinner();
 			var unitType = types[typeIndex];
 			var availableCount = HowMuchCanBuy(unitType);
 			for (var i = 0; i <= availableCount; i++)
 			{
-				ManadgeArmy(unitType, i, true);
-				if (IsWinner() || GetArmyToWinRec(typeIndex + 1))
-					return true;
-				ManadgeArmy(unitType, i, false);
+				if (GetArmyToWinRec(typeIndex + 1)) return true;
+				ManageArmy(unitType, 1, true);
 			}
+			ManageArmy(unitType, availableCount, false);
 			return false;
 		}
 	}
