@@ -46,7 +46,7 @@ namespace Homm.Client
 	        WorldCurrentTime = sensorData.WorldCurrentTime;
         }
 
-        public void UpdateMapState(HommSensorData data)
+        private void UpdateMapState(HommSensorData data)
         {
             foreach (var obj in data.Map.Objects)
             {
@@ -90,7 +90,7 @@ namespace Homm.Client
 
 		private int InspectBeyondEnemyRec(Location location, HashSet<Location> visitedBeyondEnemy)
 		{
-			var result = GetCellValue(this[location]);
+			var result = GetMapObjectValue(this[location]);
 			foreach (var direction in Directions)
 			{
 				var l = location.NeighborAt(direction.Key);
@@ -102,7 +102,7 @@ namespace Homm.Client
 			return result;
 		}
 
-		public int GetCellValue(MapObjectData obj)
+		private int GetMapObjectValue(MapObjectData obj)
 		{
 			if (obj.ResourcePile != null)
 				return obj.ResourcePile.Amount;
@@ -171,16 +171,6 @@ namespace Homm.Client
 			for (var i = result.Count - 1; i >= 0; i--)
 				yield return result[i];
 		}
-
-        private int GetArmyPower(Dictionary<UnitType, int> army)
-        {
-            var power = 0;
-            foreach (var unit in army)
-            {
-                power += unit.Value * UnitsConstants.Current.CombatPower[unit.Key];
-            }
-            return power;
-        }
 
         public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 

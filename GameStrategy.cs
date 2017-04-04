@@ -111,7 +111,7 @@ namespace Homm.Client
             return newResource;
         }
 
-        IEnumerable<Tuple<Dictionary<Resource, int>, int>> AlternativePurchases(UnitType unit, Dictionary<Resource, int> myRes, bool needToCount)
+        private IEnumerable<Tuple<Dictionary<Resource, int>, int>> AlternativePurchases(UnitType unit, Dictionary<Resource, int> myRes, bool needToCount)
         {
             var canBuy = HowMuchCanBuy(unit, myRes);
             if (!needToCount)
@@ -169,5 +169,15 @@ namespace Homm.Client
             }
             return null;
         }
-    }
+
+		private int GetArmyPower(Dictionary<UnitType, int> army)
+		{
+			var power = 0;
+			foreach (var unit in army)
+			{
+				power += unit.Value * UnitsConstants.Current.CombatPower[unit.Key];
+			}
+			return power;
+		}
+	}
 }
