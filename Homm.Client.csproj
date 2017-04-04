@@ -52,6 +52,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArmyCalculator.cs" />
     <Compile Include="GameStrategy.cs" />
     <Compile Include="Homm.Client.Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

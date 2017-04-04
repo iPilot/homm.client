@@ -20,30 +20,22 @@ namespace Homm.Client
 
         private Dictionary<Location, MapObjectData> mapObjects;
 		private HashSet<Location> visited;
-		private readonly int height;
-        private readonly int width;
-        private readonly string mySide;
 	    private HommClient client;
-	    private double WorldCurrentTime;
+	    private HommSensorData lastInfo;
 		private HashSet<Location> enemies { get; }
 
 		public Dictionary<UnitType, HashSet<Location>> Dwellings { get; }
 		public Dictionary<Resource, HashSet<Location>> Mines { get; }
 
-		public StrategyMapInfo(HommClient client, HommSensorData sensorData)
+		public StrategyMapInfo(HommClient client)
 		{
 			client.OnSensorDataReceived += UpdateMapState;
-            height = sensorData.Map.Height;
-            width = sensorData.Map.Width;
 			visited = new HashSet<Location>();
             mapObjects = new Dictionary<Location, MapObjectData>();
             enemies = new HashSet<Location>();
             Dwellings = new Dictionary<UnitType, HashSet<Location>>();
             Mines = new Dictionary<Resource, HashSet<Location>>();
-            UpdateMapState(sensorData);
-            mySide = sensorData.MyRespawnSide;
 	        this.client = client;
-	        WorldCurrentTime = sensorData.WorldCurrentTime;
         }
 
         private void UpdateMapState(HommSensorData data)
@@ -55,14 +47,12 @@ namespace Homm.Client
                 mapObjects[l] = obj;
 	            if (enemies.Contains(l)) enemies.Remove(l);
             }
-	        WorldCurrentTime = data.WorldCurrentTime;
+	        lastInfo = data;
         }
 
-		public HommSensorData InspectMap(HommSensorData sensorData)
+		public HommSensorData InspectMap()
 		{
-			var location = sensorData.Location.ToLocation();
-			UpdateMapState(sensorData);
-			var result = sensorData;
+			var location = lastInfo.Location.ToLocation();
 			foreach (var direction in Directions)
 			{
 				var l = location.NeighborAt(direction.Key);
@@ -71,13 +61,14 @@ namespace Homm.Client
 				AddObject(obj, l);
 				if (visited.Contains(l) || !IsSafetyObject(obj)) continue;
 				visited.Add(l);
-				InspectMap(client.Move(direction.Key));
-				result = client.Move(Directions[direction.Key]);
+				client.Move(direction.Key);
+				InspectMap();
+				client.Move(Directions[direction.Key]);
 			}
-			return result;
+			return lastInfo;
 		}
 
-		public Location GetRichestEnemy()
+		public Location GetRichestEnemyLocation()
 		{
 			return enemies.Select(enemy => Tuple.Create(InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
 		}
@@ -107,7 +98,7 @@ namespace Homm.Client
 			if (obj.ResourcePile != null)
 				return obj.ResourcePile.Amount;
 			if (obj.Mine != null && obj.NeutralArmy == null && obj.Garrison == null)
-				return (int)(GameStrategy.Rules.CombatDuration - WorldCurrentTime);
+				return (int)(GameStrategy.Rules.CombatDuration - lastInfo.WorldCurrentTime);
 			return 0;
 		}
 
@@ -175,15 +166,15 @@ namespace Homm.Client
 
         public MapObjectData this[Location l] => IsAvailableCell(l) && mapObjects.ContainsKey(l) ? mapObjects[l] : null;
 
-        public bool IsInside(Location l)
+        private bool IsInside(Location l)
         {
-            return l.X >= 0 && l.X < width && l.Y >= 0 && l.Y < height;
+            return l.X >= 0 && l.X < lastInfo.Map.Width && l.Y >= 0 && l.Y < lastInfo.Map.Height;
         }
 
         private bool IsOpponentCastle(Location l)
         {
-            return mySide == "Left" && l.X == width - 1 && l.Y == height - 1 ||
-                   mySide == "Right" && l.X == 0 && l.Y == 0;
+            return lastInfo.MyRespawnSide == "Left" && l.X == lastInfo.Map.Width - 1 && l.Y == lastInfo.Map.Height - 1 ||
+                   lastInfo.MyRespawnSide == "Right" && l.X == 0 && l.Y == 0;
         }
 
         private bool IsAvailableCell(Location l)
@@ -193,13 +184,13 @@ namespace Homm.Client
 
         private bool IsEnemy(MapObjectData obj)
         {
-            return obj.NeutralArmy != null || obj.Garrison != null && obj.Garrison.Owner != mySide;
+            return obj.NeutralArmy != null || obj.Garrison != null && obj.Garrison.Owner != lastInfo.MyRespawnSide;
         }
 
 		private bool IsSafetyObject(MapObjectData obj)
  		{
  			return obj == null || obj.NeutralArmy == null && obj.Wall == null &&
- 				   (obj.Garrison?.Owner == null || obj.Garrison.Owner == mySide);
+ 				   (obj.Garrison?.Owner == null || obj.Garrison.Owner == lastInfo.MyRespawnSide);
  		}
     }
 }

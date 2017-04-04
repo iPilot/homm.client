@@ -15,19 +15,17 @@ namespace Homm.Client
 
 		public GameStrategy(HommClient client, string ip, int port, Guid cVarcTag)
 		{
+			Rules = new HommRules();
 			this.client = client;
+			map = new StrategyMapInfo(client);
 			//TODO: FIX PARAMETRES
 			sensorData = client.Configurate(ip, port, cVarcTag, spectacularView: false, speedUp: true, timeLimit: 1500);
-			map = new StrategyMapInfo(client, sensorData);
-			Rules = new HommRules();
 		}
-
-
 
         public void Execute()
         {
-            sensorData = map.InspectMap(sensorData);
-            var enemy = map.GetRichestEnemy();
+            sensorData = map.InspectMap();
+            var enemy = map.GetRichestEnemyLocation();
             while (enemy != null)
             {
                 var arm = GetArmyToWin(enemy);
@@ -50,8 +48,8 @@ namespace Homm.Client
                         sensorData = client.HireUnits(unit.Value);
                     }
                     MoveTo(enemy);
-                    sensorData = map.InspectMap(sensorData);
-                    enemy = map.GetRichestEnemy();
+                    sensorData = map.InspectMap();
+                    enemy = map.GetRichestEnemyLocation();
                     continue;
                 }
                 enemy = null;
