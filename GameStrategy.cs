@@ -27,7 +27,7 @@ namespace Homm.Client
         public void Execute()
         {
             sensorData = map.InspectMap(sensorData);
-            Location enemy = map.GetRichestEnemy();
+            var enemy = map.GetRichestEnemy();
             while (enemy != null)
             {
                 var arm = GetArmyToWin(enemy);
@@ -36,8 +36,7 @@ namespace Homm.Client
                     foreach (var unit in arm)
                     {
                         if (unit.Value == 0) continue;
-                        var location = map.Dwellings[unit.Key]
-                            .Select(x => x).Argmax(x => map[x].Dwelling.AvailableToBuyCount);
+                        var location = map.Dwellings[unit.Key].Argmax(x => map[x].Dwelling.AvailableToBuyCount);
                         while (map[location].Dwelling.AvailableToBuyCount < unit.Value)
                         {
                             //в это месте он начинает бегать туда сюда по неизвестной причине
@@ -57,32 +56,18 @@ namespace Homm.Client
                 }
                 enemy = null;
             }
-
-            client.Wait(3);
-            //foreach (var dwelling in map.Dwellings.SelectMany(x => x.Value))
-            //{
-            //	MoveTo(dwelling);
-            //	client.Wait(2);
-            //}
-            //MoveTo(new Location(0, 0));
+			sensorData = client.Wait(3);
         }
 
         private void MoveTo(Location target)
-		{
-			var path = map.GetPath(sensorData.Location.ToLocation(), target);
-			foreach (var direction in path)
-			{
-				sensorData = client.Move(direction);
-			}
-		}
+        {
+	        foreach (var direction in map.GetPath(sensorData.Location, target))
+		        sensorData = client.Move(direction);
+        }
 
         private Dictionary<UnitType, int> GetSumArmy(Dictionary<UnitType, int> needArmy)
         {
-            var newArmy = new Dictionary<UnitType, int>();
-            foreach (var unit in needArmy)
-                newArmy[unit.Key] = sensorData.MyArmy.ContainsKey(unit.Key)
-                ? needArmy[unit.Key] + sensorData.MyArmy[unit.Key] : needArmy[unit.Key];
-            return newArmy;
+	        return needArmy.ToDictionary(x => x.Key, y => y.Value + sensorData.MyArmy[y.Key]);
         }
 
         private bool IsWinner(Dictionary<UnitType, int> myArmy, Dictionary<UnitType, int> enemyArmy)
@@ -92,44 +77,28 @@ namespace Homm.Client
 
         private int HowMuchCanBuy(UnitType unit, Dictionary<Resource, int> myRes)
         {
-            return myRes.Select(x =>
-            {
-                if (!UnitsConstants.Current.UnitCost[unit].ContainsKey(x.Key))
-                    return int.MaxValue;
-                return x.Value / UnitsConstants.Current.UnitCost[unit][x.Key];
-            }).Min();
-        }
+			return UnitsConstants.Current.UnitCost[unit].Min(x => myRes[x.Key] / x.Value);
+		}
 
         private Dictionary<Resource, int> BuyUnit(int count, UnitType unit, Dictionary<Resource, int> myRes)
         {
-            var newResource = new Dictionary<Resource, int>();
-            foreach (var res in myRes)
-                if (!UnitsConstants.Current.UnitCost[unit].ContainsKey(res.Key))
-                    newResource[res.Key] = res.Value;
-                else
-                    newResource[res.Key] = res.Value - UnitsConstants.Current.UnitCost[unit][res.Key] * count;
+            var newResource = new Dictionary<Resource, int>(myRes);
+            foreach (var res in UnitsConstants.Current.UnitCost[unit])
+				newResource[res.Key] -= res.Value * count;
             return newResource;
         }
 
         private IEnumerable<Tuple<Dictionary<Resource, int>, int>> AlternativePurchases(UnitType unit, Dictionary<Resource, int> myRes, bool needToCount)
         {
             var canBuy = HowMuchCanBuy(unit, myRes);
-            if (!needToCount)
-            {
-                yield return new Tuple<Dictionary<Resource, int>, int>(
-                    myRes.Select(x => x).ToDictionary(k => k.Key, v => v.Value),
-                    0
-                    );
-                yield break;
-            }
-            for (var i = 0; i <= canBuy; i++)
-                yield return new Tuple<Dictionary<Resource, int>, int>(
-                    BuyUnit(i, unit, myRes),
-                    i
-                    );
+	        if (!needToCount)
+		        yield return Tuple.Create(myRes.ToDictionary(k => k.Key, v => v.Value), 0);
+	        else
+				for (var i = 0; i <= canBuy; i++)
+			        yield return Tuple.Create(BuyUnit(i, unit, myRes), i);
         }
 
-        public Dictionary<UnitType, int> GetArmyToWin(Location enemyLocation)
+        private Dictionary<UnitType, int> GetArmyToWin(Location enemyLocation)
         {
             var enemy = map[enemyLocation];
             var enemyArmy = enemy.Garrison == null ? enemy.NeutralArmy.Army : enemy.Garrison.Army;
@@ -172,12 +141,7 @@ namespace Homm.Client
 
 		private int GetArmyPower(Dictionary<UnitType, int> army)
 		{
-			var power = 0;
-			foreach (var unit in army)
-			{
-				power += unit.Value * UnitsConstants.Current.CombatPower[unit.Key];
-			}
-			return power;
+			return army.Sum(unit => unit.Value * UnitsConstants.Current.CombatPower[unit.Key]);
 		}
 	}
 }

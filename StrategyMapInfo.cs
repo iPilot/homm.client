@@ -128,15 +128,16 @@ namespace Homm.Client
 			}
 		}
 
-		public IEnumerable<Direction> GetPath(Location from, Location to)
+		public IEnumerable<Direction> GetPath(LocationInfo from, Location to)
 		{
-			if (from == to) yield break;
+			var fromLocation = from.ToLocation();
+			if (fromLocation == to) yield break;
 			var map = new Dictionary<Location, int>();
 			var q = new Queue<Location>();
 			var visitedLocations = new HashSet<Location>();
-			q.Enqueue(from);
-			visitedLocations.Add(from);
-			map[from] = 0;
+			q.Enqueue(fromLocation);
+			visitedLocations.Add(fromLocation);
+			map[fromLocation] = 0;
 			while (q.Count > 0)
 			{
 				var location = q.Dequeue();
@@ -158,7 +159,7 @@ namespace Homm.Client
 			}
 			if (!map.ContainsKey(to)) yield break;
 			var result = new List<Direction>(map[to] + 1);
-			while (to != from)
+			while (to != fromLocation)
 			{
 				foreach (var direction in Directions)
 				{
