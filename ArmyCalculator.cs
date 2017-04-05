@@ -8,21 +8,30 @@ namespace Homm.Client
 {
 	public class ArmyCalculator
 	{
+		private static readonly Dictionary<UnitType, UnitType> CounterUnitTypes = new Dictionary<UnitType, UnitType>
+		{
+			[UnitType.Cavalry] = UnitType.Infantry,
+			[UnitType.Infantry] = UnitType.Ranged,
+			[UnitType.Ranged] = UnitType.Cavalry
+		};
 		private readonly Dictionary<Resource, int> resources;
 		private readonly Dictionary<UnitType, int> myArmy, enemyArmy;
 		private readonly StrategyMapInfo map;
 		private static readonly Dictionary<UnitType, Dictionary<Resource, int>> unitCost = UnitsConstants.Current.UnitCost;
-		private static readonly List<UnitType> types = new List<UnitType>
-		{
-			UnitType.Militia, UnitType.Cavalry, UnitType.Ranged, UnitType.Infantry
-		};
+		private readonly List<UnitType> types;
 
 		public ArmyCalculator(HommSensorData heroInfo, Location enemyLocation, StrategyMapInfo map)
 		{
 			resources = new Dictionary<Resource, int>(heroInfo.MyTreasury);
 			myArmy = new Dictionary<UnitType, int>(heroInfo.MyArmy);
-			enemyArmy = map[enemyLocation].NeutralArmy?.Army ?? map[enemyLocation].Garrison?.Army;
+			enemyArmy = map[enemyLocation]?.NeutralArmy?.Army ?? map[enemyLocation]?.Garrison?.Army;
+			if (enemyArmy == null)
+				throw new ArgumentNullException($"No enemies at specified {nameof(enemyLocation)}");
 			this.map = map;
+			types = new List<UnitType>{UnitType.Militia};
+			types.AddRange(enemyArmy.Where(x => x.Key != UnitType.Militia)
+				.OrderBy(x => x.Value)
+				.Select(x => CounterUnitTypes[x.Key]));
 		}
 
 		private bool IsWinner()
