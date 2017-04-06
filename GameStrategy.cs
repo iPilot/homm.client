@@ -28,32 +28,20 @@ namespace Homm.Client
             var enemy = map.GetRichestEnemyLocation();
             while (enemy != null)
             {
-                var arm = GetArmyToWin(enemy);
-				var arm2 = new ArmyCalculator(sensorData, enemy, map).GetArmyToWin();
-                if (arm != null)
+				var arm = new ArmyCalculator(sensorData, enemy, map).GetArmyToWin();
+	            if (arm == null) continue;
+                foreach (var unit in arm.Where(x => x.Value > sensorData.MyArmy[x.Key]))
                 {
-                    foreach (var unit in arm)
-                    {
-                        if (unit.Value == 0) continue;
-                        var location = map.Dwellings[unit.Key].Argmax(x => map[x].Dwelling.AvailableToBuyCount);
-                        while (map[location].Dwelling.AvailableToBuyCount < unit.Value)
-                        {
-                            //в это месте он начинает бегать туда сюда по неизвестной причине
-                            //видимо когда-то у Dwelling наступает предел восполнения
-                            //и он больше не выдает юнитов
-                            //или где-то просто не обновилась инфа :)
-                            MoveTo(map.Mines[Resource.Gold].First());
-                            MoveTo(location);
-                        }
-                        MoveTo(location);
-                        sensorData = client.HireUnits(unit.Value);
-                    }
-                    MoveTo(enemy);
-                    sensorData = map.InspectMap();
-                    enemy = map.GetRichestEnemyLocation();
-                    continue;
+	                foreach (var d in GetDwellings(unit.Key))
+	                {
+						MoveTo(d.Item1);
+						sensorData = client.HireUnits(Math.Min(d.Item2, unit.Value - sensorData.MyArmy[unit.Key]));
+		                if (sensorData.MyArmy[unit.Key] == unit.Value) break;
+					}
                 }
-                enemy = null;
+                MoveTo(enemy);
+                sensorData = map.InspectMap();
+                enemy = map.GetRichestEnemyLocation();
             }
 			sensorData = client.Wait(3);
         }
@@ -63,6 +51,13 @@ namespace Homm.Client
 	        foreach (var direction in map.GetPath(sensorData.Location, target))
 		        sensorData = client.Move(direction);
         }
+
+		private IEnumerable<Tuple<Location, int>> GetDwellings(UnitType unitType)
+		{
+			return map.Dwellings[unitType]
+				.Select(x => Tuple.Create(x, map[x].Dwelling.AvailableToBuyCount))
+				.OrderByDescending(x => x.Item2);
+		}
 
         private Dictionary<UnitType, int> GetSumArmy(Dictionary<UnitType, int> needArmy)
         {

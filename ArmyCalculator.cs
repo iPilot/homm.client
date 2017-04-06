@@ -28,10 +28,13 @@ namespace Homm.Client
 			if (enemyArmy == null)
 				throw new ArgumentNullException($"No enemies at specified {nameof(enemyLocation)}");
 			this.map = map;
+			foreach (var units in myArmy)
+			{
+				if (!enemyArmy.ContainsKey(units.Key))
+					enemyArmy[units.Key] = 0;
+			}
 			types = new List<UnitType>{UnitType.Militia};
-			types.AddRange(enemyArmy.Where(x => x.Key != UnitType.Militia)
-				.OrderBy(x => x.Value)
-				.Select(x => CounterUnitTypes[x.Key]));
+			types.AddRange(enemyArmy.Where(x => x.Key != UnitType.Militia).OrderBy(x => x.Value).Select(x => CounterUnitTypes[x.Key]));
 		}
 
 		private bool IsWinner()
@@ -65,10 +68,12 @@ namespace Homm.Client
 			if (typeIndex == types.Count) return IsWinner();
 			var unitType = types[typeIndex];
 			var availableCount = HowMuchCanBuy(unitType);
-			for (var i = 0; i <= availableCount; i++)
+			var step = Math.Max(availableCount / 5, 1);
+			for (var i = 0; step > 0; i+=step)
 			{
 				if (GetArmyToWinRec(typeIndex + 1)) return true;
-				ManageArmy(unitType, 1, true);
+				ManageArmy(unitType, step, true);
+				step = Math.Min(availableCount - i, step);
 			}
 			ManageArmy(unitType, availableCount, false);
 			return false;

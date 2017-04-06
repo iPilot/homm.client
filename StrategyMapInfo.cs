@@ -22,7 +22,7 @@ namespace Homm.Client
 		private HashSet<Location> visited;
 	    private HommClient client;
 	    private HommSensorData lastInfo;
-		private HashSet<Location> enemies { get; }
+		private Dictionary<Location, int> enemies { get; }
 
 		public Dictionary<UnitType, HashSet<Location>> Dwellings { get; }
 		public Dictionary<Resource, HashSet<Location>> Mines { get; }
@@ -32,7 +32,7 @@ namespace Homm.Client
 			client.OnSensorDataReceived += UpdateMapState;
 			visited = new HashSet<Location>();
             mapObjects = new Dictionary<Location, MapObjectData>();
-            enemies = new HashSet<Location>();
+            enemies = new Dictionary<Location, int>();
             Dwellings = new Dictionary<UnitType, HashSet<Location>>();
             Mines = new Dictionary<Resource, HashSet<Location>>();
 	        this.client = client;
@@ -43,9 +43,8 @@ namespace Homm.Client
             foreach (var obj in data.Map.Objects)
             {
                 var l = obj.Location.ToLocation();
-                if (mapObjects.ContainsKey(l) && mapObjects[l] == obj) continue;
                 mapObjects[l] = obj;
-	            if (enemies.Contains(l)) enemies.Remove(l);
+	            if (enemies.ContainsKey(l) && !IsEnemy(obj)) enemies.Remove(l);
             }
 	        lastInfo = data;
         }
@@ -70,10 +69,10 @@ namespace Homm.Client
 
 		public Location GetRichestEnemyLocation()
 		{
-			return enemies.Select(enemy => Tuple.Create(InspectBeyondEnemy(enemy), enemy)).Argmax(x => x.Item1).Item2;
+			return enemies.Count > 0 ? enemies.Argmax(x => x.Value).Key : null;
 		}
 
-		private int InspectBeyondEnemy(Location location)
+		private int InspectBeyondEnemy(Location location)	
 		{
 			var visitedCopy = new HashSet<Location>(visited);
 			return InspectBeyondEnemyRec(location, visitedCopy);
@@ -104,7 +103,8 @@ namespace Homm.Client
 
 		private void AddObject(MapObjectData obj, Location location)
 	    {
-			if (IsEnemy(obj)) enemies.Add(location);
+			if (IsEnemy(obj) && !enemies.ContainsKey(location))
+				enemies.Add(location, InspectBeyondEnemy(location));
 			if (obj.Dwelling != null)
 			{
 				if (!Dwellings.ContainsKey(obj.Dwelling.UnitType))
