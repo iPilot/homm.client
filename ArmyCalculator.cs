@@ -52,9 +52,9 @@ namespace Homm.Client
 
 		private void ManageArmy(UnitType unitType, int count, bool buy)
 		{
-			var c = buy ? -1 : 1 * count;
+			var c = (buy ? 1 : -1) * count;
 			foreach (var resource in unitCost[unitType])
-				resources[resource.Key] += c * resource.Value;
+				resources[resource.Key] -= c * resource.Value;
 			myArmy[unitType] += c;
 		}
 
